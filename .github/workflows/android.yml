@@ -1,0 +1,40 @@
+name: Free Android Build
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Extract Zip File Code
+        run: |
+          unzip facefuse-android-studio-project.zip -d extracted_project
+          # Move files up if the zip contained a root folder
+          if [ -d "extracted_project/facefuse-android-studio-project" ]; then
+            mv extracted_project/facefuse-android-studio-project/* ./
+          elif [ -d "extracted_project/"* ]; then
+            mv extracted_project/*/* ./
+          else
+            mv extracted_project/* ./
+          fi
+          rm -rf extracted_project facefuse-android-studio-project.zip
+
+      - name: Set up Java Development Kit
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Grant Execute Permissions
+        run: chmod +x gradlew
+
+      - name: Compile Unsigned Debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Save and Output APK File
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-apk
+          path: app/build/outputs/apk/debug/*.apk
